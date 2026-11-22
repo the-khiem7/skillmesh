@@ -1,0 +1,13 @@
+{
+  "roots": ["%USERPROFILE%\\skills-repos"],
+  "targets": {
+    "agents": "%USERPROFILE%\\.agents\\skills",
+    "claude": "%USERPROFILE%\\.claude\\skills",
+    "kiro": "%USERPROFILE%\\.kiro\\skills"
+  },
+  "precedence": "shallowest-wins",
+  "ignore": [],
+  "known_foreign": [".trash"],
+  "overrides": {},
+  "trash_dir": ".trash"
+}
