@@ -1,0 +1,18 @@
+/* Skillmesh illustration contract. Tokens follow the signature in the header of each page. */
+:root {
+  --paper:#f2f8fa; --panel:#ffffff; --ink:#0e2a38; --muted:#4b6472; --line:#9cc4d3;
+  --acc:#10a8bd; --mesh:#007c8e; --sig:#ff5a3c; --cardline:#a8c4cf;
+}
+html[data-theme="dark"] {
+  --paper:#071720; --panel:#0d2430; --ink:#e6f5f8; --muted:#9fbac4; --line:#2c6075;
+  --acc:#3ee0f0; --mesh:#3ee0f0; --sig:#ff7a5c; --cardline:#24485a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #888; }
+.sheet { width: max-content; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.item {
+  zoom: 2; position: relative; overflow: hidden; width: 1200px;
+  font-family: 'Share Tech Mono', monospace; color: var(--ink); background: var(--paper);
+}
+.item svg { display: block; }
+.name { font-family: 'Oxanium', sans-serif; font-weight: 800; }

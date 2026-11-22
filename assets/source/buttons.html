@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>buttons</title>
+<!-- Render: uvx --from playwright --with pillow python -I <skill-dir>/scripts/render.py buttons.html --root assets --out assets
+-->
+<!-- Signature (Skillmesh, mesh hub):
+ 1 concept: a mesh of agents around one bot head; a skill repo is edited once and every agent node sees it.
+ 2 shape: circles as nodes joined by thin connecting lines, one outline bot head with a dotted halo, dot-grid ground.
+ 3 typeface: Oxanium 800 (names, headings), Share Tech Mono (labels, text).
+ 4 palette: cool white and ink teal in light, deep teal-black in dark; cyan links, one coral signal (antenna, travelling pulse).
+ 5 presentation: centred hub poster; figures reuse the nodes, the links and the bot head; labels short and in the tool's own words.
+ 6 not: no hardware panel, no transit map, no stamps, no blue-purple gradient, no official agent logos (marks are simple stand-ins).
+ Fonts seen by render.py: Oxanium, Share Tech Mono. Grounds: light rgb(242,248,250), dark rgb(7,23,32). -->
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="shared.js"></script><link rel="stylesheet" href="shared.css">
+<style>.btn{display:flex;align-items:center;gap:12px;height:56px;padding-left:12px;background:var(--paper)}.btn b{font:800 24px/1 Oxanium,sans-serif;letter-spacing:.04em;color:var(--ink);white-space:nowrap}</style>
+</head><body><div class="sheet">
+<div class="item btn" id="btn-why" style="width:135px;height:56px"><svg width="40" height="40" viewBox="-20.0 -20.0 40 40" fill="none" style="flex:none"><circle r="17.75" fill="var(--panel)" stroke="var(--acc)" stroke-width="3.5"/><g transform="scale(0.6785714285714286)"><path d="M0-17Q2-3 17 0Q2 3 0 17Q-2 3-17 0Q-2-3 0-17Z" fill="var(--ink)"/></g></svg><b>Why</b></div>
+<div class="item btn" id="btn-how" style="width:270px;height:56px"><svg width="40" height="40" viewBox="-20.0 -20.0 40 40" fill="none" style="flex:none"><circle r="17.75" fill="var(--panel)" stroke="var(--acc)" stroke-width="3.5"/><g transform="scale(0.6785714285714286)"><rect x="-20" y="-9" width="22" height="18" rx="9" fill="none" stroke="var(--ink)" stroke-width="4.5"/><rect x="-2" y="-9" width="22" height="18" rx="9" fill="none" stroke="var(--ink)" stroke-width="4.5"/></g></svg><b>How it works</b></div>
+<div class="item btn" id="btn-start" style="width:255px;height:56px"><svg width="40" height="40" viewBox="-20.0 -20.0 40 40" fill="none" style="flex:none"><circle r="17.75" fill="var(--panel)" stroke="var(--acc)" stroke-width="3.5"/><g transform="scale(0.6785714285714286)"><path d="M-13-8L-3 0-13 8M2 10H14" fill="none" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></g></svg><b>Quick start</b></div>
+<div class="item btn" id="btn-safety" style="width:180px;height:56px"><svg width="40" height="40" viewBox="-20.0 -20.0 40 40" fill="none" style="flex:none"><circle r="17.75" fill="var(--panel)" stroke="var(--acc)" stroke-width="3.5"/><g transform="scale(0.6785714285714286)"><path d="M0-18L15-12V2Q15 13 0 19Q-15 13-15 2V-12Z" fill="none" stroke="var(--ink)" stroke-width="4.5" stroke-linejoin="round"/><path d="M-6 1L-1 6 7-5" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g></svg><b>Safety</b></div>
+<div class="item btn" id="btn-ref" style="width:225px;height:56px"><svg width="40" height="40" viewBox="-20.0 -20.0 40 40" fill="none" style="flex:none"><circle r="17.75" fill="var(--panel)" stroke="var(--acc)" stroke-width="3.5"/><g transform="scale(0.6785714285714286)"><path d="M-16-13H-2Q0-13 0-10V16Q0 13-2 13H-16ZM16-13H2Q0-13 0-10V16Q0 13 2 13H16Z" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linejoin="round"/></g></svg><b>Reference</b></div>
+</div></body></html>
