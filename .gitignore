@@ -1,0 +1,11 @@
+state/
+
+# personal values: created per machine with `Skillmesh.ps1 -Mode Init`
+skillmesh.config.json
+DECISIONS.local.md
+
+# agent folders: recreated per clone with `Skillmesh.ps1 -Mode Link`
+.claude/
+.kiro/
+.agents/
+
