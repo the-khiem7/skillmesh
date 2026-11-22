@@ -3,8 +3,8 @@ baseline_schema: "3.0"
 pack: "skillmesh"
 document: "roadmap"
 status: "active"
-updated: "2026-11-09"
-code_ref: "6c29d1f"
+updated: "2026-11-22"
+code_ref: "uncommitted"
 ---
 
 # Skillmesh - roadmap
@@ -17,7 +17,7 @@ code_ref: "6c29d1f"
 | SKM-P2 | Link both targets to the repos | SKM-P1 | complete |
 | SKM-P3 | Session-start watch and project skills | SKM-P1 | complete |
 | SKM-P4 | Guidance file and decision record | SKM-P2 | complete |
-| SKM-P5 | Convert the documents into this pack | SKM-P4 | active |
+| SKM-P5 | Convert the documents into this pack | SKM-P4 | complete |
 | SKM-P6 | Triage NEW FOREIGN entries | SKM-P2 | complete |
 | SKM-P7 | Move personal values into gitignored config | SKM-P5 | active |
 
@@ -49,8 +49,8 @@ code_ref: "6c29d1f"
 ### SKM-P5: Phase 5 - convert the documents into this pack
 
 - Delivered this pack: introduction, roadmap, decisions, source topology.
-- Acceptance: `bldh.sh check` prints no FAIL; every decision from `DECISIONS.md` is present in `skillmesh.hallucination.md`; `SKM-Q1` is closed and the losing copy retired.
-- Blocked on: the user's answer to `SKM-Q1`.
+- Acceptance: every decision from `DECISIONS.md` is present in `skillmesh.hallucination.md` (`D7a` migrated as `SKM-D15`); `SKM-Q1` is closed by `SKM-D16` and `DECISIONS.md` and `DECISIONS.local.md` are removed; `-Mode Doctor` prints `ok`.
+- Not verified: `bldh.sh check` after the last edit.
 
 ### SKM-P6: Phase 6 - triage NEW FOREIGN entries
 
@@ -60,7 +60,7 @@ code_ref: "6c29d1f"
 
 ### SKM-P7: Phase 7 - personal values into gitignored files
 
-- Delivered: `skillmesh.config.example.json`, `-Mode Init`, environment-variable expansion in `roots` and `targets`, `DECISIONS.local.md`, generic `DECISIONS.md` and pack, the setup section in `AGENTS.md` (`SKM-D14`).
+- Delivered: `skillmesh.config.example.json`, `-Mode Init`, environment-variable expansion in `roots` and `targets`, the setup section in `AGENTS.md` (`SKM-D14`).
 - Acceptance: a search of every tracked file for the owner's user name, absolute personal paths, personal skill and repo names and email finds nothing; `-Mode Doctor` prints `ok` with the real config; `-Mode Init` on a clone without a config creates one from the example.
 - Not verified until run: the clone test.
 
@@ -74,4 +74,4 @@ code_ref: "6c29d1f"
 
 ## Next action
 
-- Finish `SKM-P7` verification, then ask the user `SKM-Q1` (in `skillmesh.hallucination.md`) as a labelled question with options A, B and C and the recommended A, then apply the answer to `AGENTS.md`, the four project skills, `Skillmesh.ps1`, `skillmesh.config.json` and `DECISIONS.md` in one pass and rerun `-Mode Doctor`.
+- Finish `SKM-P7` verification (the clone test), then run `bldh.sh check` on this pack.

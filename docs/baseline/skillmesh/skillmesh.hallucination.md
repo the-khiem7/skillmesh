@@ -3,8 +3,8 @@ baseline_schema: "3.0"
 pack: "skillmesh"
 document: "hallucination"
 status: "active"
-updated: "2026-11-09"
-code_ref: "6c29d1f"
+updated: "2026-11-22"
+code_ref: "uncommitted"
 ---
 
 # Skillmesh - decisions and open questions
@@ -17,17 +17,18 @@ code_ref: "6c29d1f"
 | SKM-D2 | which source wins when a skill name repeats | closed | SKM-D1 |
 | SKM-D3 | repos with no SKILL.md | closed | - |
 | SKM-D4 | handling a real copy at a target | closed, part assumed | SKM-D6 |
-| SKM-D5 | entries at a target with no source (FOREIGN) | closed | SKM-D4 |
+| SKM-D5 | entries at a target with no source (FOREIGN) | closed, personal-reason file dropped by SKM-D16 | SKM-D4, SKM-D16 |
 | SKM-D6 | wrong or broken junctions | closed | SKM-D4 |
-| SKM-D7 | choosing the target of a run | closed | - |
+| SKM-D7 | choosing the target of a run | closed | SKM-D15 |
 | SKM-D8 | session-start watch | closed, part assumed | - |
 | SKM-D9 | whether scan state is committed | closed, assumed | - |
 | SKM-D10 | runtime and link type | closed, part assumed | - |
-| SKM-D11 | config and decision record must agree | closed, revisit | SKM-D12, SKM-Q1 |
-| SKM-D12 | guidance and decisions in separate files | closed | SKM-D11, SKM-Q1 |
+| SKM-D11 | config and decision record must agree | closed, reversed by SKM-D16 | SKM-D12, SKM-D16 |
+| SKM-D12 | guidance and decisions in separate files | closed, record moved to the pack by SKM-D16 | SKM-D11, SKM-D16 |
 | SKM-D13 | project skills in skills\ linked into gitignored agent folders | closed | SKM-D8, SKM-D12 |
-| SKM-D14 | personal values in gitignored files, committed example config | closed | SKM-D5, SKM-D11 |
-| SKM-Q1 | what retires the root decision file | open | SKM-D11, SKM-D12 |
+| SKM-D14 | personal values in gitignored files, committed example config | closed, local decision file dropped by SKM-D16 | SKM-D5, SKM-D11, SKM-D16 |
+| SKM-D15 | Kiro as a third target, `all` | closed | SKM-D7, SKM-D8 |
+| SKM-D16 | the pack is the only decision record | closed | SKM-D11, SKM-D12, SKM-D14 |
 
 ## Closed decisions
 
@@ -69,7 +70,7 @@ code_ref: "6c29d1f"
 
 ### SKM-D7: target selectable, default both
 
-- Decision: `-Target agents|claude|both`, default `both` - lets one side be applied and verified before the other.
+- Decision: `-Target agents|claude|both`, default `both` - lets one side be applied and verified before the other. `kiro` and `all` were added by `SKM-D15`.
 
 ### SKM-D8: session-start watch, project scoped, read-only
 
@@ -90,7 +91,7 @@ code_ref: "6c29d1f"
 
 - Decision: `-Mode Doctor` checks that every name in `ignore`, `known_foreign` and `overrides` appears in the gitignored `DECISIONS.local.md` when it exists, and that roots, targets, `AGENTS.md`, `DECISIONS.md` and `skills\` exist - the config carries no reasons, so the record is the only place they live.
 - If ignored: config entries accumulate with no recorded reason.
-- Revisit: the check names a decision file inside code; see `SKM-Q1`.
+- Reversed by `SKM-D16`: the check was removed.
 
 ### SKM-D12: guidance and decisions live in separate files
 
@@ -112,17 +113,19 @@ code_ref: "6c29d1f"
 - Rejected: keeping the config committed with personal values - leaks them. Committing the real config and asking each user to edit it - every user commits their own paths.
 - Limit: `-Mode Link` works without a config; every other mode stops until `-Mode Init` has run. Publishing starts from a fresh `git init`, so the old history with personal values is not carried over.
 
-## Open questions
+### SKM-D15: Kiro is a third target; `all` covers it, `both` stays two
 
-### SKM-Q1: what retires the root decision file
+- Decision: `-Target agents|claude|kiro|both|all`; `kiro` is the Kiro user-level skills directory, `both` keeps meaning agents+claude and stays the default, `all` is all three, and the `SessionStart` hook of `SKM-D8` scans `-Target all` [agent].
+- Why: Kiro reads user-level skills from `.kiro\skills`, so it needs the same links; leaving `both` and the default unchanged keeps old commands and approvals meaning what they did [agent].
+- If ignored: Kiro misses every skill added to a root and its drift is never reported.
+- Rejected: making `both` mean all three - silently widens what an old `-Target both` approval changes [agent]. Default `all` - same reason [agent].
+- Source: migrated from the retired root `DECISIONS.md` (entry D7a), where it was recorded without a user tag.
 
-- Question: `DECISIONS.md` duplicates this document; which single file remains the record, and what happens to the `Doctor` check of `SKM-D11`? The pack contract forbids code or configuration naming a pack file, so `Skillmesh.ps1` cannot point at this document.
-- Evidence: `AGENTS.md`, the four project skills and `Skillmesh.ps1` (`Test-Doctor`) name `DECISIONS.md`.
+### SKM-D16: the baseline pack is the only decision record
 
-| Option | Effect | Cost |
-|---|---|---|
-| A: retire `DECISIONS.md`, drop the Doctor name check | one record, no code naming a pack file | `SKM-D11` loses its check |
-| B: keep `DECISIONS.md` and this document | Doctor check keeps working | two copies to keep equal |
-| C: retire `DECISIONS.md`, Doctor reads this file | check survives | code names a pack file |
-
-- Recommended: A.
+- Decision: the pack under `docs\baseline\skillmesh` is the source of truth for decisions and development state; the root `DECISIONS.md` and the gitignored `DECISIONS.local.md` are removed, `Test-Doctor` no longer checks config names against a decision file or the existence of `DECISIONS.md`, and `AGENTS.md` and the project skills point at the pack (user, 2026-11-22) [user]. Closes `SKM-Q1`.
+- Why: two records had drifted (`DECISIONS.md` held `SKM-D15` before the pack did) and the pack contract forbids code naming a pack file, so the check could not move to the pack [user].
+- If ignored: decisions are edited in two places and diverge again.
+- Rejected: keep `DECISIONS.md` beside the pack (option B of `SKM-Q1`) - two copies to keep equal [user]. Doctor reads the pack (option C) - code would name a pack file [user].
+- Secret separation is unchanged: `skillmesh.config.json` stays gitignored and `skillmesh.config.example.json` stays committed (`SKM-D14`); the pack and every committed file hold no personal value.
+- Limit: the personal reasons for the config entries (why a repo is ignored, why a name is `known_foreign`) are no longer recorded anywhere in the repository; the pack states only generic rules. The removed `DECISIONS.md` stays in git history.

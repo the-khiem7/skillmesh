@@ -3,8 +3,8 @@ baseline_schema: "3.0"
 pack: "skillmesh"
 document: "sourcecode"
 status: "active"
-updated: "2026-11-09"
-code_ref: "6c29d1f"
+updated: "2026-11-22"
+code_ref: "uncommitted"
 ---
 
 # Skillmesh - source topology
@@ -16,7 +16,6 @@ code_ref: "6c29d1f"
 | `scripts\Skillmesh.ps1` | the only code: init, scan, apply, doctor, link |
 | `skillmesh.config.example.json` | committed template with neutral values and `%USERPROFILE%` |
 | `skillmesh.config.json` | gitignored; roots, targets, precedence, ignore, known_foreign, overrides, trash_dir; created by `-Mode Init` |
-| `DECISIONS.local.md` | gitignored; reasons for the config entries |
 | `skills\skillmesh-*` | four project skills wrapping the script; the only real copy |
 | `.claude\`, `.kiro\`, `.agents\` | gitignored; `-Mode Link` junctions `skills\<name>` into `.<agent>\skills\<name>` |
 | `.claude\settings.json` | gitignored; `SessionStart` hook running `Skillmesh.ps1 -Mode Scan -Watch`, created by `-Mode Link` when absent |
@@ -45,10 +44,10 @@ graph LR
 | `Invoke-Fix` | COPY moves to `<target>\.trash\<name>-<timestamp>`; WRONG-TARGET and BROKEN remove the link only; then creates the junction |
 | Config load | expands environment variables in `roots` and `targets`; a missing config stops every mode except `Link` and `Init` |
 | `Invoke-Link` | for each `-Agent`, junctions every `skills\<name>` into `.<agent>\skills\`; relinks a wrong junction, skips a real directory; creates the Claude hook when absent |
-| `Test-Doctor` | checks config names against `DECISIONS.local.md` when it exists and that roots, targets, `AGENTS.md`, `DECISIONS.md` and `skills\` exist |
+| `Test-Doctor` | checks that roots, targets, `AGENTS.md` and `skills\` exist |
 
 ## Modes and switches
 
 - `-Mode Scan` is read-only apart from writing `state\last-scan.json`; `-Mode Apply` changes the filesystem; `-Mode Doctor` checks the repository's own files; `-Mode Init` copies the example config when absent; `-Mode Link` with `-Agent claude|kiro` (default both) links `skills\` into the repo's agent folders.
-- `-Target agents|claude|both`, `-Name`, `-NoHash`; `-Watch` implies `-NoHash`, prints only when something other than OK or a known FOREIGN entry exists, and exits 0.
+- `-Target agents|claude|kiro|both|all`, `-Name`, `-NoHash`; `-Watch` implies `-NoHash`, prints only when something other than OK or a known FOREIGN entry exists, and exits 0.
 - `Doctor` exits 1 when it prints an issue.
