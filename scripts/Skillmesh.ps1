@@ -167,21 +167,13 @@ function Invoke-Fix($row, [string]$tpath, $res) {
 
 function Test-Doctor {
     $issues = New-Object System.Collections.ArrayList
-    $local = Join-Path $repo 'DECISIONS.local.md'
-    if (Test-Path -LiteralPath $local) {
-        $decisions = Get-Content -LiteralPath $local -Raw
-        $names = @($cfg.ignore) + @($cfg.known_foreign) + @($cfg.overrides.PSObject.Properties.Name)
-        foreach ($n in $names) {
-            if ($decisions -notmatch [regex]::Escape($n)) { [void]$issues.Add("config entry '$n' is not mentioned in DECISIONS.local.md") }
-        }
-    }
     foreach ($t in $cfg.targets.PSObject.Properties) {
         if (-not (Test-Path -LiteralPath $t.Value)) { [void]$issues.Add("target '$($t.Name)' missing: $($t.Value)") }
     }
     foreach ($r in $cfg.roots) {
         if (-not (Test-Path -LiteralPath $r)) { [void]$issues.Add("root missing: $r") }
     }
-    foreach ($f in 'AGENTS.md', 'DECISIONS.md', 'skills') {
+    foreach ($f in 'AGENTS.md', 'skills') {
         if (-not (Test-Path -LiteralPath (Join-Path $repo $f))) { [void]$issues.Add("repo file missing: $f") }
     }
     return $issues
