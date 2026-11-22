@@ -5,7 +5,7 @@ Repo that keeps the skill repos under the configured roots linked to the agent s
 ## Read first, in this order
 
 1. `skillmesh.config.json` - the owner's roots, targets, ignore list, known foreign entries, overrides. Gitignored; absent on a fresh clone.
-2. `DECISIONS.md` - why each rule exists. Read before proposing a change to behaviour. `DECISIONS.local.md` (gitignored, may be absent) holds the owner's reasons for the config entries.
+2. The baseline pack `docs\baseline\skillmesh` - the source of truth for scope, decisions with their reasons, phases and source topology. Load it with `baselinedocs-load` and read `skillmesh.hallucination.md` before proposing a change to behaviour.
 3. `state\last-scan.json` - result of the last scan, if present. Rerun a scan rather than trust it.
 
 ## Operate
@@ -16,7 +16,7 @@ Repo that keeps the skill repos under the configured roots linked to the agent s
 
 ## Set up after a clone
 
-- Personal values (paths, skill and repo names) live only in gitignored files: `skillmesh.config.json` and `DECISIONS.local.md`. `skillmesh.config.example.json` is the committed template; it uses environment variables such as `%USERPROFILE%`, which the script expands. Never write a user name, an absolute personal path, a personal skill or repo name, or an email into a committed file.
+- Personal values (paths, skill and repo names) live only in the gitignored `skillmesh.config.json`; the pack records generic rules and never a personal value. `skillmesh.config.example.json` is the committed template; it uses environment variables such as `%USERPROFILE%`, which the script expands. Never write a user name, an absolute personal path, a personal skill or repo name, or an email into a committed file.
 - Run `powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Init` once. It copies the example to `skillmesh.config.json` when that file is absent, then edit `roots`, `targets`, `ignore` and `known_foreign` and run `-Mode Doctor`. Every mode except `Link` stops until the config exists.
 - The project skills are committed in `skills\`. `.claude\`, `.kiro\` and `.agents\` are gitignored and empty on a fresh clone.
 - Run `powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Link` (add `-Agent claude`, `-Agent kiro` or `-Agent claude,kiro`; default both). It junctions each `skills\<name>` into `.<agent>\skills\<name>` and creates the Claude `SessionStart` hook in `.claude\settings.json` when absent. Rerunning is safe; a real directory in the way is skipped, never deleted.
@@ -35,7 +35,7 @@ Repo that keeps the skill repos under the configured roots linked to the agent s
 ## Changing config or decisions
 
 - Ask the user with labelled questions first.
-- After approval, edit `skillmesh.config.json` and `DECISIONS.local.md` (personal values), or `DECISIONS.md` (generic rules), in the same pass, then run `-Mode Doctor`. Put no personal value in `DECISIONS.md`.
+- After approval, edit `skillmesh.config.json` (personal values) and record the decision in the baseline pack (generic wording, no personal value) in the same pass, then run `-Mode Doctor`.
 - `state\` is generated; never edit it.
 
 ## Files
@@ -45,8 +45,7 @@ Repo that keeps the skill repos under the configured roots linked to the agent s
 | `scripts\Skillmesh.ps1` | init, scan, apply, doctor, link |
 | `skillmesh.config.example.json` | committed template for the config |
 | `skillmesh.config.json` | gitignored; the owner's config, created by `-Mode Init` |
-| `DECISIONS.md` | generic decisions with reasons |
-| `DECISIONS.local.md` | gitignored; reasons for the owner's config entries |
+| `docs\baseline\skillmesh\` | baseline pack: source of truth for decisions and development state |
 | `skills\` | project skills, the only real copy |
 | `.claude\`, `.kiro\` | gitignored; `-Mode Link` junctions `skills\` into them |
 | `.claude\settings.json` | gitignored; `SessionStart` hook for `skillmesh-watch`, created by `-Mode Link` |
