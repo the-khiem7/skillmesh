@@ -4,7 +4,7 @@ pack: "skillmesh"
 document: "introduction"
 status: "active"
 updated: "2026-11-22"
-code_ref: "uncommitted"
+code_ref: "60ea6eb"
 ---
 
 # Skillmesh - introduction

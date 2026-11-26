@@ -100,6 +100,45 @@ code_ref: "uncommitted"
 - Not applied from the skill, on purpose: its page plans, hero, photographs, effects and the `gate.mjs` finish gate target marketing sites; the gate was not armed so this repository gets no `.taste-skill` folder or copied kit.
 - Evidence, browser, real Chrome through the browser tool: wide (1440), 390 and 320 windows, light and dark; no horizontal overflow at 320; equal left and right edges at 390 (16px each); the console empty; on a sandbox, ticking, "Tick all", the confirm dialog and Apply by click turned MISSING, COPY and WRONG-TARGET rows into OK and printed the applied lines; the 46 HTTP checks still pass 46 of 46. The one defect found is `SKM-D22` (lesson, `hallucination`).
 - Not verified by the agent: Link and Init from the page on the real repository; a second browser tab racing the first; keyboard-only use end to end and a screen reader; the page on a touch device (the layout was checked by window size only); `prefers-reduced-motion` was coded but not observed.
+- Commit `60ea6eb` holds the control page and the first redesign.
+- Design (2026-11-26): the redesign moved to the frontdoor design board (`.frontdoor\board\control-page`, gitignored) because the first redesign did not carry the brand. Rounds 1-3 settled the scan result page and the Overview hub (`SKM-D23`); fonts from Google Fonts (`SKM-D24`); `/api/scan` gains `sources` and `targetPaths` (`SKM-D25`); Round 4 screens every page before the build (`SKM-D26`); core `--target` for any configured name after the design (`SKM-D27`).
+- Design board Round 4 (2026-11-26): 17 screens, light and dark, 8 sample agents, approved as the build spec (`SKM-D29`). Sources and renders: `.frontdoor\board\control-page\round-4\a` (gitignored).
+
+| Screen | Content |
+|---|---|
+| s01 Overview | round 1 A mesh hub, 8 agent nodes in two columns (logo, name, folder, fix count or ok) wired to the core, wire colour and dash by state; right column Last scan, Scan options, Doctor and Link status |
+| s02 Scan result, Table | strip (core, problem agents only, `+N ok` chip); filter chips needs fix, ok, foreign; Table and Matrix switch; fix rows first with ticks; Apply N fixes; path panel of the selected row |
+| s03 Scan result, Matrix | same page, skill rows by agent columns, fixable cells as buttons, unticked cell dashed, all-ok rows folded, totals row |
+| s04 Output log | runs since the server started (time, operation, result pill) and the selected run's output with Copy |
+| s05 Safety rules | six rule cards (no folder deleted, links removed as links, foreign only shown, Apply uses the scan you saw, only from this computer, config never edited here) and `.trash` counts per agent, view only |
+| s06 Doctor | Run Doctor; issue banner; checks grouped config and roots, agent folders, this repository; a missing folder row with Copy path |
+| s07 Link | claude and kiro picks, project skill by agent table (LINKED, WILL LINK), hook status, restart note, Link button |
+| s08 Init | config exists banner, disabled Run Init, read-only summary of roots, rules and the 8 targets |
+| s09 First run | rail disabled except Doctor and Init, empty hub, four steps Init, edit config, Doctor, first scan |
+| s10 Nothing to fix | strip `all 8 ok`, empty state, show foreign entries |
+| s11 Scanning | rail button Scanning, strip nodes filling in, progress line, skeleton rows, read-only note |
+| s12 Apply confirm | dialog listing each fix with state, action and agent logo, the trash and stale-scan notes, Cancel and Apply |
+| s13 Apply done | success banner with counts and Output log link, rescanned rows, the path panel showing the new link |
+| s14 Stale scan | 409 banner, nothing applied, Scan again |
+| s15 Server stopped | rail server box red, content dimmed, dialog with the start command, Copy command and Reload |
+| s16 Scan result at 960 | icon rail with badge, strip without names, path panel as a drawer |
+| s17 Overview at 960 | Last scan bar above the hub, hub nodes without folder |
+
+- Build plan (`SKM-D30`, five steps, user ordered 1 to 5 in one pass, no commit):
+
+| Step | Work |
+|---|---|
+| 1 | core: `doctor_checks` (grouped, ok rows too), read-only `plan_link` |
+| 2 | server: CSP for Google Fonts (`SKM-D24`), `/api/status`, `/api/log` (memory, 50 runs), scan fields `sources` and `targetPaths` (`SKM-D25`), grouped Doctor, Link preview |
+| 3 | `ui\index.html`: one file, 17 screens, hash routes, states from real data, fold below about 1200 px |
+| 4 | `--target` accepts any configured name (`SKM-D27`), per-agent scan on Overview |
+| 5 | verify (mocked page in a browser, sandbox calls in Python), then record the result and run `bldh.sh check` |
+
+- Delivered (uncommitted, 2026-11-26, `SKM-D30` steps 1 to 5): core `doctor_checks`, `plan_link`, `valid_targets` and `--target` any configured name (`SKM-D27`); server routes `/api/status` and `/api/log`, scan fields `sources` and `targetPaths` (`SKM-D25`), grouped Doctor, Link preview, CSP for Google Fonts (`SKM-D24`); `ui\index.html` rewritten to the 17 Round 4 screens.
+- Evidence, core: `--mode doctor` and `--mode scan` (both and `--target all`) print the same output as the committed core; an unknown `--target` exits 2 with the valid names.
+- Evidence, server (functions called in Python on a sandbox config, no HTTP, no real target; 16 of 16): any configured target scans; the scan id equals the id of the same rows without the new fields; `sources` and `targetPaths` are returned; an unknown target is 400; Doctor returns three groups and the CLI issue list is unchanged; Link preview is typed and writes nothing; Apply fixed a COPY and a MISSING row, left the FOREIGN entry, moved the copy to `.trash` and kept the source; a replayed scan id gives 409; the log is newest first and capped at 50; status works without a config. The served page has no placeholder left, the token and one nonce on the style and the script, the CSP with the two font hosts and the old locks, no `style` attribute, no inline handler and no external script or image.
+- Evidence, browser (page loaded with the server's CSP as a meta tag and every `/api` call answered by mock data, 1280 and 960 px, light and dark): Overview with 8 and 12 agents, Scan result Table and Matrix, path panel per state, Apply confirm, Apply done, stale scan (409), scanning, nothing to fix, server stopped, first run, Output log, Safety rules, Doctor with a failed folder, Link preview, Init, 960 px drawer and icon rail; no CSP violation and no console error on any page. The first build used inline `style` attributes, which the CSP blocks; replaced as `SKM-D31` (lesson on the nonce CSP and style attributes) records.
+- Not verified: the page against the live server (the agent never calls its `/api`); a real Apply from the new page; the Google Fonts load behind the user's network; Link and Doctor output against the real repository from the page.
 - Remove `Skillmesh.ps1` only after one full verified cycle and the user's approval.
 
 ## Risks
@@ -113,6 +152,6 @@ code_ref: "uncommitted"
 ## Next action
 
 - Finish `SKM-P7` verification (the clone test), then run `bldh.sh check` on this pack.
-- `SKM-P9` (the control page) works and the user ran Apply from it on the real targets; it stays active until its UI and UX are polished and the user approves. Nothing is committed; the user chose to commit later.
+- `SKM-P9` (the control page): built to the approved Round 4 screens (`SKM-D29`, `SKM-D30`), uncommitted. Start the server with `uv run scripts\skillmesh_ui.py` and click through every page on the real config; the phase stays active until the built page is approved, then close it.
 - Confirm the `SessionStart` hook on the next fresh session start, then decide on removing `Skillmesh.ps1`.
 - Remove `Skillmesh.ps1` only after one full verified cycle and the user's approval.

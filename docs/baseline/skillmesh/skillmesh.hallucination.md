@@ -35,6 +35,15 @@ code_ref: "uncommitted"
 | SKM-D20 | Apply is enabled on the control page from the first version | closed | SKM-D17, SKM-D19 |
 | SKM-D21 | lesson: inline style attributes under the page CSP; unread request body on a refused POST | closed | SKM-D17 |
 | SKM-D22 | lesson: the select-all box hidden with the table header on a phone | closed | SKM-D21 |
+| SKM-D23 | control page design direction from the board rounds | closed | SKM-D17, SKM-D24, SKM-D25, SKM-D26 |
+| SKM-D24 | brand fonts loaded from the Google Fonts CDN | closed | SKM-D17, SKM-D21, SKM-D23 |
+| SKM-D25 | `/api/scan` returns source paths and target folders | closed | SKM-D17, SKM-D23 |
+| SKM-D26 | Round 4 is one screening round of every page, edited in place | closed | SKM-D23, SKM-D28 |
+| SKM-D27 | core `--target` accepts any configured target name | closed | SKM-D7, SKM-D15, SKM-D23 |
+| SKM-D28 | pages, states, agents, themes and widths of Round 4 | closed | SKM-D23, SKM-D26, SKM-Q3 |
+| SKM-D29 | Round 4 screens approved as the build spec of the control page | closed | SKM-D23, SKM-D25, SKM-D26, SKM-D27, SKM-D28 |
+| SKM-D30 | build plan of the control page: data for Link, Doctor and Output log, test method, single file, run 1 to 5 | closed | SKM-D17, SKM-D24, SKM-D25, SKM-D27, SKM-D29 |
+| SKM-D31 | lesson: the nonce CSP blocks inline style attributes and a test page without the CSP hid it | closed | SKM-D24, SKM-D30 |
 
 ## Open questions
 
@@ -190,3 +199,102 @@ None.
 - What disproved it: at 390 wide the browser tool timed out on the click, "element is not visible"; a user on a phone would have had no way to tick every row [agent].
 - Fix: the box moved into the toolbar above the table, with a visible label, and the header cell keeps only a screen-reader label [agent].
 - Rule kept: every control the page offers is reached once at the narrowest width by clicking it in a real browser, not only seen in a wide screenshot.
+
+### SKM-D23: control page design direction from the board rounds
+
+- Decision: the control page follows the frontdoor board choices (user, 2026-11-26) [user]:
+  - Brand: the README signature in `assets\source` (Oxanium for names, Share Tech Mono for labels, IBM Plex Sans for text; teal accent, coral signal, light and dark tokens).
+  - Scan result page: round 3 A - a status strip that shows only agents needing fixes as nodes (logo, name, fix count) and folds every OK agent into one `+N ok` chip with stacked logos; under it the fix table; beside it the path panel of round 2 D (source, core, junction, the current wrong link, "after Apply").
+  - Second view of the same page: the round 3 E matrix (skill rows by agent columns, fixable cells as buttons, all-OK rows folded, a totals row), switchable with the table; only the matrix table is taken from E.
+  - Overview page: the round 1 A mesh hub.
+  - Rail: no left accent bar on the active nav button; the active state is its background only. The selected table row keeps its bar.
+  - Buttons carry icons; each agent shows its real logo as inline SVG (the CSP blocks images from elsewhere); an agent with no published logo gets a letter tile of the same size; agents in the strip and matrix are derived from the scan rows, never hardcoded.
+- Why: the old page looked like plain HTML and did not carry the repository's brand [user]; round 3 A keeps one strip height for 3 or 12 agents [user]; the matrix shows a fault pattern across agents [user]; the left bar was not wanted [user].
+- If ignored: a page with 8 agents overflows a hub that draws every agent, and the redesign repeats rounds already decided.
+- Rejected, round 3 [user]: B (hub with a 4x2 agent grid), C (agents listed in the rail, per-agent scan), D (ring hub of 8 nodes) - not chosen. The user's round 2 notes: a hub drawing every agent does not scale to a large number of agents; a classic table is safest with many agents; the path panel of D has good UX.
+- Rejected, round 1 [user]: the three variants other than A (mesh hub) and B (command deck).
+- Limit: the round files live in `.frontdoor\board\control-page`, gitignored and never committed; this entry is the only committed record of the choices.
+- Limit: the Overview hub draws every agent, the scaling concern the user raised in round 2; Round 4 must show it with 8 agents.
+
+### SKM-D24: brand fonts loaded from the Google Fonts CDN
+
+- Decision: the page loads Oxanium, Share Tech Mono and IBM Plex Sans from Google Fonts; the server CSP adds `style-src https://fonts.googleapis.com` and `font-src https://fonts.gstatic.com` beside the nonces (user, 2026-11-26) [user].
+- Why: chosen by the user over vendoring the font files [user]; no font file or font route is added to the repository [agent].
+- If ignored: without the CSP sources the browser blocks the fonts and the page falls back to system fonts silently.
+- Cost [agent]: every page load contacts Google (the client IP is visible to Google; the server already sends `Referrer-Policy: no-referrer`); offline the page falls back to system fonts, so the CSS font stacks must name fallbacks; the stylesheet is not pinned by a hash, so a change on Google's side reaches the page.
+- Rejected: vendored woff2 in `ui\fonts\` with an OFL licence, a fixed-list GET route and `font-src 'self'` - the agent's recommendation, not chosen [user]; fonts as base64 `data:` URIs - large page [agent]; system fonts only - loses the brand [agent].
+- Changes the plan line "one static `ui\index.html` without CDN" of `SKM-P9` (roadmap) for fonts only; scripts, styles and logos stay inline.
+
+### SKM-D25: `/api/scan` returns source paths and target folders
+
+- Decision: the scan response gains read-only `sources` (skill name to its winning source path) and `targetPaths` (target name to its folder) (user, 2026-11-26) [user].
+- Why: the path panel shows source, junction and current link for every row, and the rows carry the source path only for MISSING and OK [agent].
+- If ignored: the path panel cannot be drawn for a WRONG-TARGET or BROKEN row.
+- Limit: `scan_id` hashes target, hash setting and rows only, so the new fields do not change it; the Apply rule is unchanged [agent].
+
+### SKM-D26: Round 4 is one screening round of every page, edited in place
+
+- Decision: before the build, design board Round 4 shows every page and state of the app as screens, not lettered variants for comparison; feedback is applied directly in Round 4 instead of opening another round; `ui\index.html` is built only after the user approves it (user, 2026-11-26) [user].
+- Why: rounds 1-3 designed only the scan result page; the rest of the app is not designed yet [user].
+- If ignored: the build starts on pages nobody has seen, and a round per fix scatters one design across boards.
+- Rejected: building `ui\index.html` right after round 3 - the agent's recommendation, not chosen [user].
+
+### SKM-D27: core `--target` accepts any configured target name
+
+- Decision: `--target` of `scripts\skillmesh.py` accepts any target name in the config besides `both` and `all`; done after the UI design is approved (user, 2026-11-26) [user].
+- Why: the page scans one agent of eight; the argparse choices name only three targets while `all` already walks every configured one [agent].
+- If ignored: a configured fourth target can only be scanned through `all`.
+
+### SKM-D28: pages, states, agents, themes and widths of Round 4
+
+- Decision (user, 2026-11-26) [user]: Round 4 screens the pages Overview (round 1 A mesh hub), Scan result in Table and Matrix view, Output log, Safety rules, Doctor, Link, Init, and the states first run (no config), nothing to fix, scanning, Apply confirm, Apply done, stale scan (409) and server stopped; sample data keeps the 8 agents of round 3; every screen in light and dark; the design is for desktop, and the layout must still hold when the user narrows the browser window. Closes SKM-Q3.
+- Why: the page runs on the owner's desktop, but a browser window is resized freely [user].
+- If ignored: a layout drawn only at 1440 breaks when the window is snapped to half a screen.
+- Rejected: a phone layout (390) as a design target - the page is used on the desktop [user]; light only - the page follows the system theme [user].
+
+### SKM-D29: Round 4 screens approved as the build spec of the control page
+
+- Decision: the 17 screens of design board Round 4 are approved as they are and are the spec the `ui\index.html` build follows; the screen list and per-screen content are in `SKM-P9` (roadmap) (user, 2026-11-26) [user].
+- Changes Round 4 made on top of `SKM-D23`, approved with it [user]:
+  - The one Scan all button sits at the top of the rail on every page, with the key S; it is disabled while scanning, on first run and when the server is stopped.
+  - The status strip has no Scan button; its caption is one small line above the bus (`24 skills - 8 agents - scanned 14:02`).
+  - The Overview right column holds Last scan (state pills, Review fixes), Scan options (skip comparing copies) and Doctor and Link status; it has no Scan button of its own.
+  - Below about 1200 px wide (shown at 960): the rail folds to icons with a count badge, strip nodes drop the agent name, the path panel becomes a drawer over the table with a close button, Overview puts Last scan in a bar above the hub and hub nodes drop the path.
+- Why: at 1280 the strip could not hold four problem agents, the ok chip and a Scan button; the first render had the button covering the chip [agent]. The user approved the screens without changes [user].
+- If ignored: the build re-decides layout already reviewed, and a second Scan button per page drifts from the rail one.
+- Limit [agent]: three screens show data the server does not return today, so the build needs core or server work, and the user has not ruled on it yet:
+  - Link shows LINKED or WILL LINK per project skill and agent; `--mode link` has no preview.
+  - Doctor shows grouped checks (config and roots, agent folders, this repository) with a count per root; the core prints only issues.
+  - Output log lists the runs of the current server start with their output; the server keeps no run history.
+- Limit [agent]: the screens live only in `.frontdoor\board\control-page\round-4` (sources and renders), which is gitignored; a lost working copy loses the visual spec and only this entry and `SKM-P9` remain.
+- Known gaps kept on purpose [user]: at 960 the open drawer covers the Agent column and the Apply button until closed; at 1280 six or more problem agents need the narrow strip form; the Overview hub draws every agent and needs another column from about 10 agents; Overview has no per-agent scan until `SKM-D27`.
+
+### SKM-D30: build plan of the control page, five steps
+
+- Decision: the user approved the build plan below and ordered it run from step 1 to step 5 in one pass with no commit (user, 2026-11-26) [user].
+  - Step 1, core (`scripts\skillmesh.py`): `doctor_checks(cfg)` returns every check with group, name, ok flag and detail, in three groups (config and roots with a skill count per root, agent folders, this repository); `test_doctor` reuses it so the CLI still prints only issues. `invoke_link` splits into a read-only `plan_link(agents)` (LINKED, WILL LINK, RELINK, SKIPPED per skill and agent, plus the hook state) and the executor that follows that plan; the CLI output is unchanged.
+  - Step 2, server (`scripts\skillmesh_ui.py`): CSP adds `style-src https://fonts.googleapis.com` and `font-src https://fonts.gstatic.com` (`SKM-D24`); new `/api/status` (config present, targets with paths, roots, `.trash` count per target, server start time); `/api/scan` adds `sources` and `targetPaths` (`SKM-D25`); `/api/doctor` returns the grouped checks; `/api/link` takes `preview: true` to return only the plan; `/api/log` returns the runs of this server start, kept in memory, at most 50 (time, operation, result, output). Every new route keeps the token, `Host`, `Origin` and body-size guards.
+  - Step 3, page (`ui\index.html`): one file rewritten to the 17 Round 4 screens; hash routes `#overview #scan #log #safety #doctor #link #init`; every state drawn from real data (first run, scanning, nothing to fix, Apply confirm, Apply done, stale scan 409, server stopped on a network error); strip, hub and Matrix columns built from scan rows, never a fixed list of 8 agents; fold below about 1200 px; key S runs Scan all; light and dark by `prefers-color-scheme`; logos inline SVG.
+  - Step 4: `--target` accepts any configured target name plus `both` and `all` in core and server (`SKM-D27`); Overview gains a scan for one agent.
+  - Step 5: verify, then record the result in the pack in the same pass and run `bldh.sh check`.
+- Data answers (user, "approve all"): Link preview from a read-only `plan_link` [user]; Doctor groups from `doctor_checks` returning ok checks too [user]; Output log in memory, no file [user].
+- Why: the three screens show data the server did not return (`SKM-D29` limit); the read-only plan keeps `--mode link` behaviour and its output as they are; an in-memory log matches the screen caption "since the server started" and writes nothing to disk [agent].
+- Test method [user]: the page is checked in a browser with every `/api` call intercepted by mock data (no server, no real target), 17 states at 1280 and 960 px in light and dark, compared with Round 4; server logic is checked by calling the functions in Python on a sandbox config in the scratchpad, not over HTTP and not on the real targets; the user finishes with a click-through on the real server. The agent never calls the running page's `/api` (`AGENTS.md`).
+- Single file [user]: `ui\index.html` stays one static file, estimated 1500 to 2000 lines, so the server keeps serving only `/` and the nonce goes on the one inline script and style.
+- Rejected:
+  - Link without a preview, only the result after clicking, dropping the WILL LINK column: ships less code but departs from the approved s07 screen [user].
+  - Doctor listing only issues as the CLI does: loses the groups and ok rows of the approved s06 screen [user].
+  - Output log written to `state\ui-log.jsonl`: survives restarts but grows without a bound and writes to disk for a caption that says "since the server started" [user].
+  - Letting the agent run the real server with a sandbox config and click through it: closer to reality but loosens the `AGENTS.md` rule that agents never call the page's `/api` [user].
+  - Splitting CSS and JS into separate files: needs static routes and a nonce per file for no gain at this size [user].
+- What breaks if ignored: a page built before the data exists draws Link, Doctor and Output log from invented values; a second Scan or Apply path drifts from the guarded routes; a mocked page passed off as tested against the server hides a route mismatch.
+- Limit [agent]: the mock test proves the page against the shapes the agent wrote, not against the live server; only the user's click-through covers that.
+
+### SKM-D31: lesson - the nonce CSP blocks inline style attributes, and a test page without the CSP hid it
+
+- Mistake [agent]: the first build of `ui\index.html` put positions and column counts in `style="..."` attributes (hub node coordinates, matrix `--cols`, skeleton widths, 37 places); the mock-data test page ran without any CSP, so every screen rendered correctly.
+- Why it looked reasonable: the server's policy is `style-src 'nonce-...'` and the page's `<style>` and `<script>` carry the nonce, which reads as "styles are allowed"; the nonce covers only elements, not the `style` attribute, which `style-src-attr` governs and which falls back to `style-src` without `'unsafe-inline'`.
+- What disproved it: the same page loaded with the server's policy as a meta tag; a probe inserting `<i style="color:red">` fired a `securitypolicyviolation` for `style-src-attr`. On the real server every positioned element would have lost its coordinates and the hub and matrix would have collapsed.
+- Fix [agent]: markup carries `data-st="..."` and `applyStyles()` sets `element.style.cssText` through the CSSOM after each render, which the policy allows; the sprite uses a class. Re-run with the policy: no violation and no console error on the 7 pages.
+- Rule kept: a page test that stands in for the server must send the server's CSP; `style-src-attr 'unsafe-inline'` was rejected as a fix because it loosens the policy (`SKM-D24` keeps fonts as the only external host) to save one helper [agent].
+- If ignored: a page that passes every mock test shows an unstyled layout on the real server, and the failure appears only in the user's click-through.
