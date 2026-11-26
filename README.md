@@ -81,7 +81,7 @@ uv run scripts\skillmesh.py --mode scan
 uv run scripts\skillmesh.py --mode apply --target claude
 ```
 
-`--target` takes `agents`, `claude`, `kiro`, `both` (agents and claude, the default) or `all` (all three). Apply one target at a time if you want to check each result before the next.
+`--target` takes `both` (agents and claude, the default), `all` (every target of the config) or any target name the config holds. Apply one target at a time if you want to check each result before the next.
 
 ## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/ico-daily-dark.webp"><img src="assets/ico-daily.webp" alt="" height="30" align="absmiddle"></picture> Everyday use
 
@@ -168,7 +168,7 @@ Every mode except `Link` and `Init` stops until the config exists.
 | `doctor` | Checks that roots, targets, `AGENTS.md` and `skills\` exist. Exits 1 when it prints an issue. |
 | `link` | Links this repository's `skills\` into `.claude\skills` and `.kiro\skills`. |
 
-Switches: `--mode init|scan|apply|doctor|link`, `--target agents|claude|kiro|both|all`, `--name <skill>`, `--no-hash`, `--watch` (implies `--no-hash`, prints only when something other than `OK` or a known `FOREIGN` entry exists, and exits 0), `--agent claude kiro` for `link`.
+Switches: `--mode init|scan|apply|doctor|link`, `--target both|all|<target name>`, `--name <skill>`, `--no-hash`, `--watch` (implies `--no-hash`, prints only when something other than `OK` or a known `FOREIGN` entry exists, and exits 0), `--agent claude kiro` for `link`.
 
 </details>
 

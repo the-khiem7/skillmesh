@@ -11,9 +11,9 @@ Repo that keeps the skill repos under the configured roots linked to the agent s
 ## Operate
 
 - All work goes through `scripts\skillmesh.py` via the project skills in `skills\`: `skillmesh-watch`, `skillmesh-scan`, `skillmesh-sync`, `skillmesh-doctor`.
-- Run scripts with `uv run scripts\skillmesh.py --mode <init|scan|apply|doctor|link>`. `--target` is `agents|claude|kiro|both|all` (`both` = agents+claude, `all` = all three).
+- Run scripts with `uv run scripts\skillmesh.py --mode <init|scan|apply|doctor|link>`. `--target` is `both` (agents+claude, the default), `all` (every target of the config) or any target name the config holds.
 - `--mode scan` is read-only. `--mode apply` changes the filesystem and only runs after the user approves the exact scan output just shown.
-- Control page: `uv run scripts\skillmesh_ui.py` starts a local page on `127.0.0.1:8765` (`--port <n>`, `--no-open`). Scan, Doctor, Link and Init are buttons; the user ticks rows and confirms Apply there, which is the approval of that scan. Start it only when the user asks, tell them the URL, and stop it with Ctrl+C (or end the process) when they are done. Never call its `/api` endpoints from an agent: the per-start token is for the page alone.
+- Control page: `uv run scripts\skillmesh_ui.py` starts a local page on `127.0.0.1:8765` (`--port <n>`, `--no-open`). Scan, Doctor, Link and Init are buttons, Output log lists this start's runs, and fonts load from the Google Fonts CDN (the page's only external host); the user ticks rows and confirms Apply there, which is the approval of that scan. Start it only when the user asks, tell them the URL, and stop it with Ctrl+C (or end the process) when they are done. Never call its `/api` endpoints from an agent: the per-start token is for the page alone.
 
 ## Set up after a clone
 
