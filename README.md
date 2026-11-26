@@ -56,12 +56,12 @@ When two repos hold a skill with the same name, the one closest to a root wins. 
 
 ## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/ico-start-dark.webp"><img src="assets/ico-start.webp" alt="" height="30" align="absmiddle"></picture> Quick start
 
-You need Windows with Windows PowerShell 5.1 and Git. Run these from a PowerShell prompt.
+You need Windows, Git and [uv](https://docs.astral.sh/uv/). `uv` fetches Python 3.12 or newer on first run; the scripts use only the standard library. Run these from a terminal.
 
 ```powershell
 git clone https://github.com/the-khiem7/skillmesh.git skillmesh
 cd skillmesh
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Init
+uv run scripts\skillmesh.py --mode init
 ```
 
 `Init` copies `skillmesh.config.example.json` to `skillmesh.config.json`. That file stays on your machine and is ignored by git. Open it and set:
@@ -76,26 +76,36 @@ powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Init
 Then check the config, look, and link:
 
 ```powershell
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Doctor
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Scan
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Apply -Target claude
+uv run scripts\skillmesh.py --mode doctor
+uv run scripts\skillmesh.py --mode scan
+uv run scripts\skillmesh.py --mode apply --target claude
 ```
 
-`-Target` takes `agents`, `claude`, `kiro`, `both` (agents and claude, the default) or `all` (all three). Apply one target at a time if you want to check each result before the next.
+`--target` takes `agents`, `claude`, `kiro`, `both` (agents and claude, the default) or `all` (all three). Apply one target at a time if you want to check each result before the next.
 
 ## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/ico-daily-dark.webp"><img src="assets/ico-daily.webp" alt="" height="30" align="absmiddle"></picture> Everyday use
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="assets/daily-dark.webp"><img src="assets/daily.webp" alt="Four everyday actions. Scan: see what is linked, run with -Mode Scan. Watch: silent unless drift, run with -Mode Scan -Watch. Apply: create or repair, run with -Mode Apply. Doctor: check the setup, run with -Mode Doctor." width="100%"></picture>
 
 ```powershell
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Scan
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Scan -Watch
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Apply -Target <target>
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Doctor
+uv run scripts\skillmesh.py --mode scan
+uv run scripts\skillmesh.py --mode scan --watch
+uv run scripts\skillmesh.py --mode apply --target <target>
+uv run scripts\skillmesh.py --mode doctor
 ```
 
-Narrow a scan with `-Target <target>` or `-Name <skill>`.
-A scan also writes `state\last-scan.json`. It is generated, not committed, and the next scan replaces it.
+Narrow a scan with `--target <target>` or `--name <skill>`.
+A scan also writes `state\last-scan.py.json`. It is generated, not committed, and the next scan replaces it.
+
+### Control page
+
+To work by clicking instead of typing, start the local page:
+
+```powershell
+uv run scripts\skillmesh_ui.py
+```
+
+It opens `http://127.0.0.1:8765/` in your browser (`--port <n>` changes the port, `--no-open` skips the browser). Scan, Doctor, Link and Init are buttons. To Apply, tick rows of the scan on screen and confirm; a row is refused if the filesystem changed since that scan. `FOREIGN` and `CONFLICT` rows are view only. The page listens on `127.0.0.1` only and every request needs a token that changes each time the server starts. Stop it with Ctrl+C.
 
 ## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/ico-agent-dark.webp"><img src="assets/ico-agent.webp" alt="" height="30" align="absmiddle"></picture> Let your agent run it
 
@@ -112,10 +122,10 @@ Skillmesh ships four skills that wrap the script, so an agent can operate it for
 Link them into this repository's own agent folders with:
 
 ```powershell
-powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Link
+uv run scripts\skillmesh.py --mode link
 ```
 
-`-Mode Link` works before any config exists. Add `-Agent claude` or `-Agent kiro` to link one, then restart the agent session so it sees the skills. For Claude it also creates a `SessionStart` hook in `.claude\settings.json` when that file is absent. The hook runs the read-only watch scan.
+`--mode link` works before any config exists. Add `--agent claude` or `--agent kiro` to link one, then restart the agent session so it sees the skills. For Claude it also creates a `SessionStart` hook in `.claude\settings.json` when that file is absent. The hook runs the read-only watch scan.
 
 ## <picture><source media="(prefers-color-scheme: dark)" srcset="assets/ico-safety-dark.webp"><img src="assets/ico-safety.webp" alt="" height="30" align="absmiddle"></picture> Safety
 
@@ -152,13 +162,13 @@ Every mode except `Link` and `Init` stops until the config exists.
 
 | Mode | Effect |
 |---|---|
-| `Init` | Copies the example config to `skillmesh.config.json` when it is absent. |
-| `Scan` | Compares skills with targets. Read-only apart from `state\last-scan.json`. |
-| `Apply` | Creates and repairs links. Changes the filesystem. |
-| `Doctor` | Checks that roots, targets, `AGENTS.md` and `skills\` exist. Exits 1 when it prints an issue. |
-| `Link` | Links this repository's `skills\` into `.claude\skills` and `.kiro\skills`. |
+| `init` | Copies the example config to `skillmesh.config.json` when it is absent. |
+| `scan` | Compares skills with targets. Read-only apart from `state\last-scan.py.json`. |
+| `apply` | Creates and repairs links. Changes the filesystem. |
+| `doctor` | Checks that roots, targets, `AGENTS.md` and `skills\` exist. Exits 1 when it prints an issue. |
+| `link` | Links this repository's `skills\` into `.claude\skills` and `.kiro\skills`. |
 
-Switches: `-Target agents|claude|kiro|both|all`, `-Name <skill>`, `-NoHash`, `-Watch` (implies `-NoHash`, prints only when something other than `OK` or a known `FOREIGN` entry exists, and exits 0), `-Agent claude,kiro` for `Link`.
+Switches: `--mode init|scan|apply|doctor|link`, `--target agents|claude|kiro|both|all`, `--name <skill>`, `--no-hash`, `--watch` (implies `--no-hash`, prints only when something other than `OK` or a known `FOREIGN` entry exists, and exits 0), `--agent claude kiro` for `link`.
 
 </details>
 
@@ -167,7 +177,10 @@ Switches: `-Target agents|claude|kiro|both|all`, `-Name <skill>`, `-NoHash`, `-W
 
 | Path | Role |
 |---|---|
-| `scripts\Skillmesh.ps1` | The only code: init, scan, apply, doctor, link. |
+| `scripts\skillmesh.py` | The core: init, scan, apply, doctor, link. Standard library only, run with `uv run`. |
+| `scripts\skillmesh_ui.py` | The local control page server. |
+| `ui\index.html` | The control page. |
+| `scripts\Skillmesh.ps1` | The earlier PowerShell core, kept until the Python core has had one verified cycle. |
 | `skillmesh.config.example.json` | Committed template for the config. |
 | `skillmesh.config.json` | Your config. Ignored by git. |
 | `skills\` | The four project skills. |
