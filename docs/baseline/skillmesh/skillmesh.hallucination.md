@@ -3,7 +3,7 @@ baseline_schema: "3.0"
 pack: "skillmesh"
 document: "hallucination"
 status: "active"
-updated: "2026-11-22"
+updated: "2026-11-26"
 code_ref: "uncommitted"
 ---
 
@@ -22,13 +22,23 @@ code_ref: "uncommitted"
 | SKM-D7 | choosing the target of a run | closed | SKM-D15 |
 | SKM-D8 | session-start watch | closed, part assumed | - |
 | SKM-D9 | whether scan state is committed | closed, assumed | - |
-| SKM-D10 | runtime and link type | closed, part assumed | - |
+| SKM-D10 | runtime and link type | closed, part assumed, runtime part reversed by SKM-D19 | SKM-D19 |
 | SKM-D11 | config and decision record must agree | closed, reversed by SKM-D16 | SKM-D12, SKM-D16 |
 | SKM-D12 | guidance and decisions in separate files | closed, record moved to the pack by SKM-D16 | SKM-D11, SKM-D16 |
 | SKM-D13 | project skills in skills\ linked into gitignored agent folders | closed | SKM-D8, SKM-D12 |
 | SKM-D14 | personal values in gitignored files, committed example config | closed, local decision file dropped by SKM-D16 | SKM-D5, SKM-D11, SKM-D16 |
 | SKM-D15 | Kiro as a third target, `all` | closed | SKM-D7, SKM-D8 |
 | SKM-D16 | the pack is the only decision record | closed | SKM-D11, SKM-D12, SKM-D14 |
+| SKM-D17 | local control page in Python; Python core trialled against PowerShell before any migration | closed | SKM-D10, SKM-D19 |
+| SKM-D18 | lesson: Python existence check on a dangling junction | closed | SKM-D17 |
+| SKM-D19 | migrate the core from PowerShell to Python | closed | SKM-D10, SKM-D17, SKM-Q2 |
+| SKM-D20 | Apply is enabled on the control page from the first version | closed | SKM-D17, SKM-D19 |
+| SKM-D21 | lesson: inline style attributes under the page CSP; unread request body on a refused POST | closed | SKM-D17 |
+| SKM-D22 | lesson: the select-all box hidden with the table header on a phone | closed | SKM-D21 |
+
+## Open questions
+
+None.
 
 ## Closed decisions
 
@@ -129,3 +139,54 @@ code_ref: "uncommitted"
 - Rejected: keep `DECISIONS.md` beside the pack (option B of `SKM-Q1`) - two copies to keep equal [user]. Doctor reads the pack (option C) - code would name a pack file [user].
 - Secret separation is unchanged: `skillmesh.config.json` stays gitignored and `skillmesh.config.example.json` stays committed (`SKM-D14`); the pack and every committed file hold no personal value.
 - Limit: the personal reasons for the config entries (why a repo is ignored, why a name is `known_foreign`) are no longer recorded anywhere in the repository; the pack states only generic rules. The removed `DECISIONS.md` stays in git history.
+
+### SKM-D17: a local control page in Python; the Python core is trialled before any migration
+
+- Decision: build a local page to run Skillmesh operations by clicking instead of prompting an agent; first trial a Python port of the core beside `Skillmesh.ps1`; migrate core and UI to Python only if it behaves exactly like the PowerShell core, otherwise keep the PowerShell core and write only the UI in Python (user, 2026-11-26) [user].
+- Why: every operation currently costs an agent prompt; a PowerShell 5.1 web server is hand-written HTTP and single-threaded, Python (via `uv`, already used) is shorter and concurrent, but the junction logic is the risky part, so it must be proven before it replaces working code [agent].
+- If ignored: an unproven port could delete content behind a junction or misclassify rows, breaking the safety rules of `SKM-D4` and `SKM-D6`.
+- Page scope: Scan, Doctor, Link, Init; Apply only for the exact scan shown (scan id checked server side, stale scan refused); FOREIGN and `.trash` view only; no config edits from the page [agent].
+- Page security: bind `127.0.0.1` only, a random token per start required on every POST, `Host`/`Origin` checked, target and agent whitelisted, names must exist in the shown scan, arguments passed as a list [agent].
+- Rejected: Node - may need installing, no gain over Python [agent]. Go - a binary to build and keep for a one-script repo [agent]. Pode - an extra PSGallery module to maintain [agent]. Electron or Tauri - too heavy for five operations [agent]. claude.ai Artifact - runs on the web and cannot touch the local filesystem [agent]. `_winapi.CreateJunction` - CPython internal, not a stable API; use `mklink /J` [agent].
+- The migration question left open here was closed by `SKM-D19`.
+
+### SKM-D18: lesson - `os.path.exists` hides a dangling junction
+
+- Mistake: the first Python scan used `os.path.exists(p)` to decide MISSING, copying the shape of PowerShell's `Test-Path -LiteralPath`.
+- Why it looked reasonable: both names read as "does this path exist".
+- What disproved it: on a sandbox with a junction whose target was deleted, PowerShell reported BROKEN (relink) and Python reported MISSING (link); `Test-Path` is true for the link itself, `exists` follows the link and is false. An Apply on that MISSING row would have failed at `mklink` with the path already present [agent].
+- Fix: `os.path.lexists` for the MISSING check in scan and in Link; the result is identical rows on the sandbox [agent].
+- Rule kept: a port compares the same fixture on both implementations and never trusts a function name; a dangling-junction fixture belongs to every parity run.
+
+### SKM-D19: the core migrates from PowerShell to Python
+
+- Decision: `scripts\skillmesh.py` becomes the Skillmesh core and the control page of `SKM-D17` is built on it; the PowerShell core and `SKM-D10` (PowerShell 5.1 + junctions) are replaced for the runtime part, the junction link type stays (user, 2026-11-26) [user]. Closes `SKM-Q2`.
+- Why: every check of the parity gate (`SKM-P8`, roadmap) passed against the PowerShell core, and the watch scan starts in 0.35 s against 1.9 s [user].
+- If ignored: two cores to keep equal, and a UI that either shells out to PowerShell or duplicates its logic.
+- Rejected: keeping PowerShell as the core with only the UI in Python - the gate showed no behavioural reason to keep two languages [agent].
+- Limit: `Skillmesh.ps1` stays until one full cycle on the Python core is verified and the user approves removing it; Apply of the Python core on the real targets is unverified.
+- Limit: the Python core refuses a path with a `cmd` metacharacter (`& | < > ^ % " ! ( )` or a control character) when creating a junction, which PowerShell accepts; a skill directory named that way is reported as an error [agent].
+
+### SKM-D20: Apply is enabled on the control page from the first version
+
+- Decision: the control page offers Apply from its first version, without a start flag; the page and the server still require ticked rows of a scan that the server holds and a fresh scan with the same parameters giving the same scan id (user, 2026-11-26) [user].
+- Why: the user chose it over an off-by-default switch [user]; the scan-id check keeps the approval tied to the rows on screen [agent].
+- If ignored: not applicable; the risk is the reverse, a click on Apply changes the real targets with a core whose Apply has run only on sandboxes.
+- Rejected: Apply behind `--allow-apply`, so the user runs the core's Apply by hand once first - the user chose it on from the start [user].
+- Limit: the Python core's Apply is still unverified on the real targets (`SKM-D19`); the page's Apply is verified on a sandbox only.
+
+### SKM-D21: lesson - the CSP blocks inline style attributes, and a refused POST must read its body first
+
+- Mistake: the first page used three `style="..."` attributes while the server sent `style-src 'nonce-...'`; the first server answered a refused POST (415) without reading the request body.
+- Why it looked reasonable: a nonce on the `<style>` and `<script>` tags looked like it covered the whole page, and a 4xx reply needs no body.
+- What disproved it: in a real browser the console reported three CSP violations and the three styles were dropped; the HTTP test client got `ConnectionAbortedError` instead of the 415, because on Windows closing a socket with unread request data resets the connection [agent].
+- Fix: the three styles became classes; `do_POST` reads the declared body (at most 64 KB) before every refusal, and an oversize body closes the connection [agent].
+- Rule kept: a page under a nonce CSP uses no `style` attribute; the HTTP test also runs the page in a browser and reads its console, and a refusal test sends a body.
+
+### SKM-D22: lesson - a control placed in a table header vanishes when the header is hidden for phones
+
+- Mistake: the redesign put the select-all checkbox in the table header, and under 640px the header is hidden so rows can stack as cards.
+- Why it looked reasonable: on a wide window the header is the usual place for it, and the desktop screenshot showed it working.
+- What disproved it: at 390 wide the browser tool timed out on the click, "element is not visible"; a user on a phone would have had no way to tick every row [agent].
+- Fix: the box moved into the toolbar above the table, with a visible label, and the header cell keeps only a screen-reader label [agent].
+- Rule kept: every control the page offers is reached once at the narrowest width by clicking it in a real browser, not only seen in a wide screenshot.
