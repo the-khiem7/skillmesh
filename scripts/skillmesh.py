@@ -232,51 +232,112 @@ def invoke_fix(cfg, r, tpath, winners):
     make_junction(p, src)
 
 
-def test_doctor(cfg):
-    issues = []
-    for n, v in cfg['targets'].items():
-        if not os.path.exists(v):
-            issues.append(f"target '{n}' missing: {v}")
+def doctor_checks(cfg):
+    """Every check Doctor makes, ok ones too: dicts with group, name, ok, detail, issue.
+
+    Groups: config (config file and roots, with a skill count per root), agents (the
+    target folders), repo (files of this repository). `issue` is the line Doctor prints
+    for a failed check.
+    """
+    checks = []
+
+    def add(group, name, ok, detail, issue):
+        checks.append({'group': group, 'name': name, 'ok': ok, 'detail': detail, 'issue': issue})
+
+    add('config', 'skillmesh.config.json', os.path.exists(CFG_PATH), CFG_PATH, f'config missing: {CFG_PATH}')
+    counts = {}
+    try:
+        for sk in find_skills(cfg):
+            for r in cfg['roots']:
+                if full_path(sk['source']).lower().startswith(full_path(r).lower() + '\\'):
+                    counts[r] = counts.get(r, 0) + 1
+                    break
+    except OSError:
+        counts = {}
     for r in cfg['roots']:
-        if not os.path.exists(r):
-            issues.append(f'root missing: {r}')
+        ok = os.path.exists(r)
+        add('config', f'root {r}', ok, f'{counts.get(r, 0)} skills' if ok else 'missing', f'root missing: {r}')
+    for n, v in cfg['targets'].items():
+        ok = os.path.exists(v)
+        add('agents', f'target {n}', ok, v if ok else 'missing', f"target '{n}' missing: {v}")
     for f in ('AGENTS.md', 'skills'):
-        if not os.path.exists(os.path.join(REPO, f)):
-            issues.append(f'repo file missing: {f}')
-    return issues
+        ok = os.path.exists(os.path.join(REPO, f))
+        add('repo', f, ok, 'present' if ok else 'missing', f'repo file missing: {f}')
+    return checks
 
 
-def invoke_link(agents):
+def test_doctor(cfg):
+    checks = [c for c in doctor_checks(cfg) if c['name'] != 'skillmesh.config.json']
+    return [c['issue'] for g in ('agents', 'config', 'repo') for c in checks if c['group'] == g and not c['ok']]
+
+
+def plan_link(agents):
+    """What invoke_link would do, read-only: items of agent, skill, state, detail.
+
+    States: LINKED (already right), WILL LINK (missing), RELINK (junction to elsewhere),
+    SKIPPED (a real directory is in the way). `hook` is None when claude is not asked,
+    else 'present' or 'will create'.
+    """
     src = os.path.join(REPO, 'skills')
     skills = sorted(
         (n for n, pth, _ in list_dirs(src) if os.path.exists(os.path.join(pth, 'SKILL.md'))), key=str.lower)
+    items = []
     for a in agents:
         d = os.path.join(REPO, f'.{a}', 'skills')
-        os.makedirs(d, exist_ok=True)
         for s in skills:
             p = os.path.join(d, s)
             sp = os.path.join(src, s)
             if not os.path.lexists(p):
-                make_junction(p, sp)
-                print(f'linked   {a} {s}')
+                items.append({'agent': a, 'skill': s, 'state': 'WILL LINK', 'detail': sp})
                 continue
             kind, cur = link_info(p)
             if kind == 'Junction' and cur and same_path(cur, sp):
-                print(f'ok       {a} {s}')
+                items.append({'agent': a, 'skill': s, 'state': 'LINKED', 'detail': sp})
             elif kind == 'Junction':
-                remove_link_only(p)
-                make_junction(p, sp)
-                print(f'relinked {a} {s}')
+                items.append({'agent': a, 'skill': s, 'state': 'RELINK', 'detail': f'points to {cur}'})
             else:
-                print(f'SKIPPED  {a} {s} - a real directory is in the way, move it by hand')
+                items.append({'agent': a, 'skill': s, 'state': 'SKIPPED',
+                              'detail': 'a real directory is in the way, move it by hand'})
     hook = os.path.join(REPO, '.claude', 'settings.json')
-    if 'claude' in agents and not os.path.exists(hook):
+    hook_state = None
+    if 'claude' in agents:
+        hook_state = 'present' if os.path.exists(hook) else 'will create'
+    return {'items': items, 'hook': hook_state}
+
+
+def invoke_link(agents):
+    src = os.path.join(REPO, 'skills')
+    plan = plan_link(agents)
+    for a in agents:
+        os.makedirs(os.path.join(REPO, f'.{a}', 'skills'), exist_ok=True)
+    for it in plan['items']:
+        a, s = it['agent'], it['skill']
+        p = os.path.join(REPO, f'.{a}', 'skills', s)
+        sp = os.path.join(src, s)
+        if it['state'] == 'WILL LINK':
+            make_junction(p, sp)
+            print(f'linked   {a} {s}')
+        elif it['state'] == 'LINKED':
+            print(f'ok       {a} {s}')
+        elif it['state'] == 'RELINK':
+            remove_link_only(p)
+            make_junction(p, sp)
+            print(f'relinked {a} {s}')
+        else:
+            print(f'SKIPPED  {a} {s} - {it["detail"]}')
+    hook = os.path.join(REPO, '.claude', 'settings.json')
+    if plan['hook'] == 'will create':
         cmd = 'uv run "$CLAUDE_PROJECT_DIR/scripts/skillmesh.py" --mode scan --watch --target all'
         obj = {'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': cmd}]}]}}
         os.makedirs(os.path.dirname(hook), exist_ok=True)
         with open(hook, 'w', encoding='utf-8') as f:
             json.dump(obj, f, indent=2)
         print('created  claude SessionStart hook')
+
+
+def valid_targets(cfg):
+    """`both` (agents + claude), `all`, and every target name the config holds."""
+    return ['both', 'all'] + list(cfg['targets'])
 
 
 def select_targets(cfg, target):
@@ -291,7 +352,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog='skillmesh.py')
     ap.add_argument('--mode', choices=['scan', 'apply', 'doctor', 'link', 'init'], default='scan')
     ap.add_argument('--agent', nargs='+', choices=['claude', 'kiro'], default=['claude', 'kiro'])
-    ap.add_argument('--target', choices=['both', 'all', 'agents', 'claude', 'kiro'], default='both')
+    ap.add_argument('--target', default='both', help='both, all, or any target name of the config')
     ap.add_argument('--name', nargs='+')
     ap.add_argument('--no-hash', action='store_true')
     ap.add_argument('--watch', action='store_true')
@@ -316,6 +377,9 @@ def main(argv=None):
     if mode == 'link':
         invoke_link(a.agent)
         return 0
+    if a.target not in valid_targets(cfg):
+        print(f'unknown target {a.target!r}; use one of: {", ".join(valid_targets(cfg))}', file=sys.stderr)
+        return 2
     if mode == 'doctor':
         issues = test_doctor(cfg)
         if not issues:
