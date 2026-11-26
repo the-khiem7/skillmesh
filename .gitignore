@@ -9,3 +9,12 @@ skillmesh.config.json
 .agents/
 
 .frontdoor/
+.playwright-mcp/
+
+# python bytecode and tool caches, created whenever skillmesh.py is imported or run
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
