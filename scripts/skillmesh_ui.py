@@ -25,15 +25,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import skillmesh as core  # noqa: E402
 
 INDEX = os.path.join(core.REPO, 'ui', 'index.html')
-TARGETS = ('both', 'all', 'agents', 'claude', 'kiro')
 AGENTS = ('claude', 'kiro')
 MAX_BODY = 64 * 1024
 MAX_ITEMS = 500
 MAX_SCANS = 20
+MAX_RUNS = 50
+MAX_OUT = 300
 
 LOCK = threading.Lock()  # one operation at a time: scans, applies and stdout capture
 SCANS = {}  # scan id -> {'target', 'no_hash', 'rows'}, newest last
 TOKEN = secrets.token_urlsafe(32)
+STARTED = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+RUNS = []  # runs of this server start, oldest first; memory only, nothing is written to disk
+RUN_SEQ = [0]
 
 
 class ApiError(Exception):
@@ -69,34 +73,36 @@ def run_scan(cfg, target, no_hash):
     return winners, rows
 
 
-def remember(target, no_hash, rows):
+def remember(cfg, winners, target, no_hash, rows):
     sid = scan_id(target, no_hash, rows)
     SCANS.pop(sid, None)
     SCANS[sid] = {'target': target, 'no_hash': no_hash, 'rows': rows}
     while len(SCANS) > MAX_SCANS:
         SCANS.pop(next(iter(SCANS)))
     return {'scanId': sid, 'scannedAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'target': target,
-            'noHash': no_hash, 'rows': rows, 'summary': summarize(rows)}
+            'noHash': no_hash, 'rows': rows, 'summary': summarize(rows),
+            'sources': {name: w['source'] for name, w in winners.values()},
+            'targetPaths': {n: cfg['targets'][n] for n in cfg['targets']}}
 
 
 def need_choice(body, key, allowed):
     v = body.get(key)
-    if v not in allowed:
+    if not isinstance(v, str) or v not in allowed:
         raise ApiError(400, f'{key} must be one of {", ".join(allowed)}')
     return v
 
 
 def api_scan(body):
-    target = need_choice(body, 'target', TARGETS)
+    cfg = load_cfg()
+    target = need_choice(body, 'target', core.valid_targets(cfg))
     no_hash = body.get('noHash')
     if not isinstance(no_hash, bool):
         raise ApiError(400, 'noHash must be true or false')
-    cfg = load_cfg()
     try:
-        _, rows = run_scan(cfg, target, no_hash)
+        winners, rows = run_scan(cfg, target, no_hash)
     except RuntimeError as e:
         raise ApiError(500, str(e))
-    return remember(target, no_hash, rows)
+    return remember(cfg, winners, target, no_hash, rows)
 
 
 def api_apply(body):
@@ -136,17 +142,19 @@ def api_apply(body):
         except (RuntimeError, OSError) as e:
             results.append({'target': r['Target'], 'skill': r['Skill'], 'state': r['State'], 'ok': False, 'error': str(e)})
     try:
-        _, rows = run_scan(cfg, rec['target'], rec['no_hash'])
+        winners, rows = run_scan(cfg, rec['target'], rec['no_hash'])
     except RuntimeError as e:
         raise ApiError(500, str(e))
     SCANS.pop(sid, None)
-    return {'results': results, 'scan': remember(rec['target'], rec['no_hash'], rows)}
+    return {'results': results, 'scan': remember(cfg, winners, rec['target'], rec['no_hash'], rows)}
 
 
 def api_doctor(body):
     cfg = load_cfg()
+    checks = core.doctor_checks(cfg)
     issues = core.test_doctor(cfg)
-    return {'ok': not issues, 'lines': ['Doctor: ok'] if not issues else [f'Doctor: {i}' for i in issues]}
+    return {'ok': not issues, 'lines': ['Doctor: ok'] if not issues else [f'Doctor: {i}' for i in issues],
+            'checks': [{k: c[k] for k in ('group', 'name', 'ok', 'detail')} for c in checks]}
 
 
 def capture(fn):
@@ -159,19 +167,90 @@ def capture(fn):
     return buf.getvalue().splitlines()
 
 
-def api_link(body):
+def link_agents(body):
     agents = body.get('agents')
     if not isinstance(agents, list) or not agents or any(a not in AGENTS for a in agents):
         raise ApiError(400, f'agents must be a non-empty list of {", ".join(AGENTS)}')
-    return {'lines': capture(lambda: core.invoke_link(sorted(set(agents))))}
+    return sorted(set(agents))
+
+
+def api_link(body):
+    agents = link_agents(body)
+    preview = body.get('preview', False)
+    if not isinstance(preview, bool):
+        raise ApiError(400, 'preview must be true or false')
+    if preview:
+        return {'preview': True, 'plan': core.plan_link(agents)}
+    lines = capture(lambda: core.invoke_link(agents))
+    return {'preview': False, 'lines': lines, 'plan': core.plan_link(agents)}
 
 
 def api_init(body):
     return {'lines': capture(lambda: core.main(['--mode', 'init']))}
 
 
+def count_dirs(path):
+    try:
+        return sum(1 for _ in core.list_dirs(path))
+    except OSError:
+        return 0
+
+
+def api_status(body):
+    if not os.path.exists(core.CFG_PATH):
+        return {'config': False, 'startedAt': STARTED, 'agents': list(AGENTS), 'configPath': core.CFG_PATH}
+    cfg = load_cfg()
+    targets = []
+    for n, v in cfg['targets'].items():
+        targets.append({'name': n, 'path': v, 'exists': os.path.exists(v),
+                        'trash': count_dirs(os.path.join(v, cfg['trash_dir']))})
+    return {'config': True, 'startedAt': STARTED, 'agents': list(AGENTS), 'trashDir': cfg['trash_dir'], 'configPath': core.CFG_PATH,
+            'roots': cfg['roots'], 'targets': targets, 'validTargets': core.valid_targets(cfg),
+            'ignore': len(cfg['ignore']), 'knownForeign': len(cfg['known_foreign']),
+            'overrides': len(cfg['overrides'])}
+
+
+def api_log(body):
+    return {'startedAt': STARTED, 'runs': list(reversed(RUNS))}
+
+
+def run_output(op, result):
+    """(verdict, output lines) of a finished operation, for the Output log."""
+    if op == 'scan':
+        rows = result['rows']
+        lines = [f"scan {result['target']} ({'no hash' if result['noHash'] else 'hash'}): {len(rows)} rows",
+                 'Summary: ' + ' '.join(f'{k}={v}' for k, v in sorted(result['summary'].items()))]
+        lines += [f"{r['State']:<12} {r['Target']} {r['Skill']}" for r in rows
+                  if r['State'] != 'OK' and not (r['State'] == 'FOREIGN' and r['Detail'] == 'known')]
+        return 'ok', lines
+    if op == 'apply':
+        lines = [('applied  ' if r['ok'] else 'FAILED   ') + f"{r['state']:<12} {r['target']} {r['skill']}"
+                 + ('' if r['ok'] else f" - {r['error']}") for r in result['results']]
+        return ('ok' if all(r['ok'] for r in result['results']) else 'issues'), lines
+    if op == 'doctor':
+        return ('ok' if result['ok'] else 'issues'), result['lines']
+    if op == 'link':
+        if result.get('preview'):
+            return 'ok', [f"{i['state']:<9} {i['agent']} {i['skill']}" for i in result['plan']['items']]
+        return ('issues' if any(x.startswith('SKIPPED') for x in result['lines']) else 'ok'), result['lines']
+    return 'ok', result.get('lines', [])
+
+
+def record_run(op, result=None, error=None):
+    RUN_SEQ[0] += 1
+    if error is not None:
+        verdict, lines = 'error', [error]
+    else:
+        verdict, lines = run_output(op, result)
+    RUNS.append({'id': RUN_SEQ[0], 'time': datetime.now().strftime('%H:%M:%S'), 'op': op,
+                 'result': verdict, 'lines': lines[:MAX_OUT], 'truncated': max(0, len(lines) - MAX_OUT)})
+    del RUNS[:-MAX_RUNS]
+
+
 ROUTES = {'/api/scan': api_scan, '/api/apply': api_apply, '/api/doctor': api_doctor,
-          '/api/link': api_link, '/api/init': api_init}
+          '/api/link': api_link, '/api/init': api_init, '/api/status': api_status, '/api/log': api_log}
+LOGGED = {'/api/scan': 'scan', '/api/apply': 'apply', '/api/doctor': 'doctor', '/api/link': 'link',
+          '/api/init': 'init'}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -218,7 +297,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.fail(500, 'ui/index.html is missing')
         nonce = secrets.token_urlsafe(16)
         page = page.replace('__TOKEN__', TOKEN).replace('__NONCE__', nonce)
-        csp = (f"default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; "
+        # Fonts come from the Google Fonts CDN (stylesheet host and font-file host); nothing else is external.
+        csp = (f"default-src 'none'; script-src 'nonce-{nonce}'; "
+               f"style-src 'nonce-{nonce}' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
                "connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
         self.send(200, page, 'text/html; charset=utf-8', {'Content-Security-Policy': csp})
 
@@ -252,12 +333,21 @@ class Handler(BaseHTTPRequestHandler):
             return self.fail(400, 'body is not JSON')
         if not isinstance(body, dict):
             return self.fail(400, 'body must be a JSON object')
+        op = LOGGED.get(self.path)
         try:
             with LOCK:
                 result = handler(body)
+                if op and not (op == 'link' and result.get('preview')):
+                    record_run(op, result)
         except ApiError as e:
+            if op:
+                with LOCK:
+                    record_run(op, error=f'{e.status}: {e.message}')
             return self.fail(e.status, e.message)
         except Exception as e:  # keep the server alive; the message stays local
+            if op:
+                with LOCK:
+                    record_run(op, error=f'{type(e).__name__}: {e}')
             return self.fail(500, f'{type(e).__name__}: {e}')
         self.send(200, json.dumps(result), 'application/json; charset=utf-8')
 
