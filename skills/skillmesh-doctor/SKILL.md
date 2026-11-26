@@ -5,7 +5,7 @@ description: Check that this repo's own files agree - roots and targets present,
 
 # skillmesh-doctor
 
-1. Run `powershell -NoProfile -File scripts\Skillmesh.ps1 -Mode Doctor`. Each issue is one line.
+1. Run `uv run scripts\skillmesh.py --mode doctor`. Each issue is one line.
 2. Then run a scan and handle the leftover rows one at a time:
    - BROKEN: the source moved or was deleted. Ask whether the skill is gone or relocated.
    - CONFLICT: ask which source wins; record it as an `overrides` entry plus a decision in the baseline pack (`docs/baseline/skillmesh`), with no personal name in the pack.
